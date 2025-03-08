@@ -1,133 +1,132 @@
-"""Project Frontend Integration Guide
+# Frontend Integration Guide for Face Recognition Project
 
-This document should guide the frontend team in integrating the UI with the backend APIs
+This document provides a comprehensive guide for integrating the frontend (Next.js + Tailwind CSS) with the backend APIs (Flask + MongoDB + Redis + FaceNet).
 
-1. Overview
+## 1️⃣ Overview
 
-This document provides guidelines for integrating the frontend with the backend API for the face recognition project. The backend is built using Flask, MongoDB (GridFS), Redis, and FaceNet for face detection.
+### **Tech Stack**
+- **Frontend:** Next.js, Tailwind CSS
+- **Backend:** Flask, MongoDB (GridFS or Server Storage), Redis, FaceNet
+- **Database:** MongoDB
+- **Storage:** GridFS (by default) or Server Storage (optional)
+- **Routing:** Next.js API routes (`/admin`, `/search`)
+- **Environment Configuration:** `.env.local`
 
-2. API Endpoints
+### **Setup Frontend Locally**
 
-2.1 Upload Image (Admin Panel)
+#### **1. Install VS Code and Extensions**
+- Download **Visual Studio Code** 
+- Install the following VS Code extensions:
+  - **ESLint** (for linting)
+  - **Prettier** (for code formatting)
+  - **Tailwind CSS IntelliSense** (for Tailwind CSS autocomplete)
+  - **JavaScript (ES6+) Snippets** (for better JavaScript development)
 
-Endpoint: POST /upload
+#### **2. Install Node.js and Dependencies**
+- Download and install **Node.js** (LTS version) from: [https://nodejs.org/](https://nodejs.org/)
+- Install dependencies using:
+```bash
+npm install  # Installs required packages
+npm run dev  # Starts the Next.js development server
+```
 
-Description: Uploads an image with metadata (event & date) to GridFS.
+### **3. Environment Configuration**
+Create a `.env.local` file in the root directory and add:
+```ini
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:5000
+```
+Replace `127.0.0.1:5000` with the actual backend URL when in production.
 
-Request Parameters:
+## 2️⃣ API Endpoints Integration
 
-image: (File) The image file to be uploaded.
+### **2.1 Upload Image (Admin Panel)**
+Uploads multiple images to the server with metadata.
 
-event: (String) The event name associated with the image.
+**📌 Endpoint:** `POST /upload`
 
-date: (String) The date of the event (format: YYYY-MM-DD).
+**🔹 Request Parameters:**
+- `images[]`: (File) Multiple images (JPEG/PNG)
+- `event`: (String) Event name (Required)
+- `date`: (String) Event date in `YYYY-MM-DD` format (Required)
+- `department`: (String) Department (Required)
+- `district`: (String) District (Required)
+- `location`: (String) Location details (Required)
 
-Response:
-{
-  "status": "success",
-  "image_id": "<MongoDB ObjectID>"
-}
-Frontend Task: Implement a file upload form with event and date fields.
+**📌 Integration in Next.js (`/admin/page.js`)**
+```javascript
+const handleUpload = async (event) => {
+    event.preventDefault();
+    let formData = new FormData();
+    formData.append("event", event.target.event.value);
+    formData.append("date", event.target.date.value);
+    formData.append("department", event.target.department.value);
+    formData.append("district", event.target.district.value);
+    formData.append("location", event.target.location.value);
 
-2.2 Search Image (User Panel)
-
-Endpoint: POST /search
-
-Description: Searches for matching faces in the database.
-
-Request Parameters:
-
-image: (File) The image file to search for matches.
-
-event: (Optional) (String) Filter search by event name.
-
-date: (Optional) (String) Filter search by event date (format: YYYY-MM-DD).
-
-Response:
-{
-  "status": "success",
-  "matches": [
-    {
-      "image_id": "<MongoDB ObjectID>",
-      "image_url": "http://127.0.0.1:5000/get_image/<image_id>",
-      "download_url": "http://127.0.0.1:5000/download/<image_id>",
-      "similarity": 0.85
+    let imageFiles = event.target.images.files;
+    for (let i = 0; i < imageFiles.length; i++) {
+        formData.append("images[]", imageFiles[i]);
     }
-  ],
-  "processing_time": "0.32 sec"
-}
-Frontend Task: Display matched images using image_url and provide a download button using download_url.
 
-2.3 Retrieve Image
-
-Endpoint: GET /get_image/<image_id>
-
-Description: Retrieves and displays an image from the database.
-
-Frontend Task: Use this API to fetch and display images.
-
-2.4 Download Image
-
-Endpoint: GET /download/<image_id>
-
-Description: Provides an option to download the stored image.
-
-Frontend Task: Implement a download button linking to this endpoint.
-
-3. Frontend Implementation Guidelines
-
-File Upload Forms: Use multipart/form-data when sending images.
-
-Handle API Responses: Display messages based on API responses.
-
-Caching: Utilize browser caching to optimize repeated searches.
-
-UI Suggestions:
-
-Display image previews for uploaded and searched images.
-
-Implement a loading animation while waiting for search results.
-
-Provide a clear button to reset the search form.
-
-4. Example HTML Form (Admin Upload Panel)
-<form action="/upload" method="POST" enctype="multipart/form-data">
-    <label>Event Name:</label>
-    <input type="text" name="event" required>
-    <label>Date:</label>
-    <input type="date" name="date" required>
-    <label>Image:</label>
-    <input type="file" name="image" required>
-    <button type="submit">Upload</button>
-</form>
-5. Example JavaScript for Fetching Matched Images
-fetch('/search', {
-    method: 'POST',
-    body: formData
-})
-.then(response => response.json())
-.then(data => {
-    let resultsContainer = document.getElementById('results');
-    resultsContainer.innerHTML = '';
-    data.matches.forEach(match => {
-        let imgElement = document.createElement('img');
-        imgElement.src = match.image_url;
-        imgElement.alt = 'Matched Face';
-        resultsContainer.appendChild(imgElement);
-        
-        let downloadLink = document.createElement('a');
-        downloadLink.href = match.download_url;
-        downloadLink.innerText = 'Download Image';
-        resultsContainer.appendChild(downloadLink);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/upload`, {
+        method: "POST",
+        body: formData,
     });
-})
-.catch(error => console.error('Error:', error));
+    const data = await response.json();
+    console.log(data);
+};
+```
 
-6. Deployment Considerations
+---
 
-Production Server: Change API URLs from 127.0.0.1 to the deployed server’s address.
+### **2.2 Search Image (User Panel)**
+Users upload an image to search for matches.
 
-MongoDB Cloud (If Used): Update connection URL in database.py.
+**📌 Endpoint:** `POST /search`
 
-Security: Implement proper authentication for uploading and searching images."""
+**📌 Integration in Next.js (`/search/page.js`)**
+```javascript
+const handleSearch = async (event) => {
+    event.preventDefault();
+    let formData = new FormData();
+    formData.append("event", event.target.event.value);
+    formData.append("date", event.target.date.value);
+    formData.append("department", event.target.department.value);
+    formData.append("district", event.target.district.value);
+    formData.append("image", event.target.image.files[0]);
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/search`, {
+        method: "POST",
+        body: formData,
+    });
+    const data = await response.json();
+    console.log("Search Results:", data);
+};
+```
+
+---
+
+### **2.3 Displaying Search Results in UI**
+```javascript
+useEffect(() => {
+    if (searchResults.length > 0) {
+        searchResults.forEach(match => {
+            let imgElement = document.createElement('img');
+            imgElement.src = match.image_url;
+            imgElement.alt = 'Matched Face';
+            document.getElementById('results').appendChild(imgElement);
+        });
+    }
+}, [searchResults]);
+```
+
+---
+
+## 3️⃣ **Deployment Considerations**
+- **Change API URLs** from `127.0.0.1` to the deployed server.
+- **Use HTTPS** in production.
+- **Ensure authentication** for image uploads.
+- **Optimize caching** for faster search responses.
+
+This guide ensures a smooth integration of the frontend with the backend APIs. 🚀
 

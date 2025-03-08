@@ -6,7 +6,7 @@
 http://127.0.0.1:5000
 ```
 For production deployment, replace this with the actual server URL.
-
+# for run server- python server.py
 ---
 ## 1️⃣ **Upload Image (Admin Panel)**
 Uploads an image to the database along with event and date metadata.
